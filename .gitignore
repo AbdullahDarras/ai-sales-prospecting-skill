@@ -1,0 +1,18 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+# بيانات العمل: قواعد العملاء وملفات التصدير لا تُرفع أبدًا
+sales-workspace/
+data/
+exports/
+*.db
+*.db-wal
+*.db-shm
+*.xlsx
+.env
+credentials*.json
+# ملف الخط اختياري ولا يُوزَّع مع المستودع (ترخيصه لصاحبه)
+skills/sales-prospecting/scripts/sales_agent/web/static/fonts/*.otf
+skills/sales-prospecting/scripts/sales_agent/web/static/fonts/*.ttf
+.claude/

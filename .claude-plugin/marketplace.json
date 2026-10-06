@@ -1,0 +1,15 @@
+{
+  "name": "ai-sales-prospecting",
+  "owner": {
+    "name": "AbdullahDarras",
+    "url": "https://github.com/AbdullahDarras"
+  },
+  "description": "Sales prospecting skill: find, verify and qualify ideal customers, with human-approved Arabic outreach drafts.",
+  "plugins": [
+    {
+      "name": "sales-prospecting",
+      "source": "./",
+      "description": "Discover, enrich, verify, score and draft outreach for ideal customers from public sources. Every fact carries a source; nothing is sent without human approval."
+    }
+  ]
+}

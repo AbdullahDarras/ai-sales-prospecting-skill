@@ -1,0 +1,13 @@
+{
+  "name": "sales-prospecting",
+  "description": "Find, verify and qualify ideal customers from public web sources, and prepare Arabic first-contact outreach for human approval. Evidence-based verification, approval UI, Excel export.",
+  "version": "0.1.0",
+  "author": {
+    "name": "AbdullahDarras",
+    "url": "https://github.com/AbdullahDarras"
+  },
+  "homepage": "https://github.com/AbdullahDarras/ai-sales-prospecting-skill",
+  "repository": "https://github.com/AbdullahDarras/ai-sales-prospecting-skill",
+  "license": "MIT",
+  "keywords": ["sales", "prospecting", "lead-generation", "icp", "verification", "arabic", "outreach"]
+}

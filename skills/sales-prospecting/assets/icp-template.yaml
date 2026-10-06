@@ -1,0 +1,31 @@
+# قالب شريحة جديدة. انسخه إلى ./sales-workspace/icp/<CODE>.yaml وعدّله.
+# لا سعر ولا تكلفة في أي حقل نصي.
+code: MY-1
+name: اسم الشريحة بجملة
+description: >
+  من هو العميل المثالي وما ألمه الظاهر علنًا على الإنترنت.
+specialties: [قطاع 1, قطاع 2]
+team_noun: موظفين            # ما نعدّه: أطباء، موظفين…
+team_noun_large: موظفًا       # المفرد المنصوب للأعداد فوق 10
+min_team: 5                  # اختياري
+max_team: 50                 # اختياري
+max_branches: 5              # اختياري
+decision_maker: المالك أو المدير
+decision_maker_titles: [المالك, المدير العام]
+discover_priority: ما نفضّله عند البحث وما نبتعد عنه.
+large_hint: ما يُعدّ كبيرًا جدًا بنظرنا
+exclusions:
+  - منشأة كبيرة أو سلسلة
+  - جهة حكومية
+  - منشأة مغلقة نهائيًا أو لا يوجد دليل على أنها تعمل
+fit_signals:
+  - إشارة محفّزة قابلة للملاحظة 1
+  - إشارة محفّزة قابلة للملاحظة 2
+search_hints:
+  - عبارة بحث عن {city}، {country}
+source_hints:
+  - خرائط جوجل
+  - مواقع المنشآت الرسمية
+  - السجلات الرسمية وغرف التجارة
+channel_order: [whatsapp, instagram, email]   # أو linkedin
+first_offer: العرض الأول بلا أي سعر

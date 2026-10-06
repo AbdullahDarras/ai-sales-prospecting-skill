@@ -1,0 +1,6 @@
+{
+  "name": "sales-prospecting",
+  "description": "Find, verify and qualify ideal customers from public sources and prepare Arabic outreach drafts for human approval.",
+  "version": "0.1.0",
+  "contextFileName": "GEMINI.md"
+}
