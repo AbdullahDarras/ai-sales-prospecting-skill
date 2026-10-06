@@ -24,27 +24,41 @@
 
 ## التثبيت
 
-**Claude Code** (إضافة من المنتج):
-```
-/plugin marketplace add AbdullahDarras/ai-sales-prospecting-skill
-/plugin install sales-prospecting@ai-sales-prospecting
-```
+### Claude Code (الأسهل، ويشتغل مع تطبيق Claude Desktop وVS Code)
 
-**أي وكيل يدعم Agent Skills** (أمر `skills`):
+افتح **الطرفية (Terminal)** على جهازك (وليس خانة المحادثة داخل التطبيق)، وشغّل:
+
 ```bash
-npx skills add AbdullahDarras/ai-sales-prospecting-skill            # أو أضف -a codex / -a claude-code / -a gemini-cli
+claude plugin marketplace add AbdullahDarras/ai-sales-prospecting-skill
+claude plugin install sales-prospecting@ai-sales-prospecting
 ```
 
-**يدويًا:** انسخ المجلد `skills/sales-prospecting` إلى مجلد المهارات عند وكيلك:
+ثم ابدأ جلسة جديدة. الإضافة تظهر كذلك بتبويب **Code** في تطبيق Claude Desktop وفي VS Code لأنها تقرأ نفس الإعدادات.
+الأمر `claude` يأتي من [Claude Code](https://code.claude.com/docs/en/overview) (إن لم يكن عندك، استخدم «يدويًا» بالأسفل).
+
+> **رسالة «Plugins aren't available in this environment»؟** تظهر إذا كتبت `/plugin ...` داخل تبويب Code بتطبيق Desktop أو VS Code أو claude.ai/code.
+> هذا متوقع: أوامر `/plugin` تعمل فقط داخل جلسة `claude` بالطرفية. استخدم أوامر `claude plugin ...` أعلاه من الطرفية.
+> وإذا كنت أصلًا داخل جلسة `claude` بالطرفية، يكفي أمر واحد: `/plugin install sales-prospecting --marketplace AbdullahDarras/ai-sales-prospecting-skill` (يحتاج إصدار 2.1.275 أو أحدث).
+> الجلسات السحابية (claude.ai/code) لا تحمّل الإضافات المثبتة على جهازك.
+
+### يدويًا (بدون أوامر الإضافات)
+
 ```bash
 git clone https://github.com/AbdullahDarras/ai-sales-prospecting-skill
-cp -R ai-sales-prospecting-skill/skills/sales-prospecting ~/.claude/skills/     # Claude Code (عام)
-cp -R ai-sales-prospecting-skill/skills/sales-prospecting ~/.agents/skills/     # Codex CLI وغيره (عام)
-cp -R ai-sales-prospecting-skill/skills/sales-prospecting .gemini/skills/       # Gemini CLI (داخل المشروع)
+mkdir -p ~/.claude/skills
+cp -R ai-sales-prospecting-skill/skills/sales-prospecting ~/.claude/skills/
 ```
-وكيل بلا دعم أصلي للمهارات؟ افتح هذا المستودع داخله: يقرأ `AGENTS.md` أو `GEMINI.md` ويتبع `SKILL.md`.
+بدون git: من صفحة المستودع اضغط **Code ← Download ZIP**، فك الضغط، وانسخ المجلد `skills/sales-prospecting` إلى `~/.claude/skills/`
+(في Finder: ‏`Cmd+Shift+G` ثم اكتب `~/.claude/skills`). ثم ابدأ جلسة جديدة.
 
-> المسارات أعلاه حسب معيار Agent Skills. راجع توثيق وكيلك إن اختلف عندك.
+### وكلاء آخرون (Agent Skills)
+
+```bash
+npx skills add AbdullahDarras/ai-sales-prospecting-skill            # أو أضف -a codex / -a gemini-cli
+```
+أو انسخ `skills/sales-prospecting` إلى: ‏`~/.agents/skills/` (Codex وغيره) أو `.gemini/skills/` (Gemini CLI داخل المشروع).
+وكيل بلا دعم أصلي للمهارات؟ افتح هذا المستودع داخله: يقرأ `AGENTS.md` أو `GEMINI.md` ويتبع `SKILL.md`.
+> هذه المسارات حسب معيار Agent Skills. راجع توثيق وكيلك إن اختلف عندك.
 
 ## الاستخدام
 
@@ -97,17 +111,24 @@ discover → enrich → verify → score → draft → human approval → (sendi
 ```
 
 **Install**
-```
-# Claude Code
-/plugin marketplace add AbdullahDarras/ai-sales-prospecting-skill
-/plugin install sales-prospecting@ai-sales-prospecting
 
-# any Agent Skills-compatible agent
-npx skills add AbdullahDarras/ai-sales-prospecting-skill     # add -a codex | -a claude-code | -a gemini-cli
-
-# manual: copy skills/sales-prospecting into your agent's skills folder
-#   Claude Code: ~/.claude/skills/   Codex etc.: ~/.agents/skills/   Gemini CLI: .gemini/skills/
+*Claude Code (also covers the Claude Desktop Code tab and VS Code).* Run these in a regular **terminal** (not in the chat box):
+```bash
+claude plugin marketplace add AbdullahDarras/ai-sales-prospecting-skill
+claude plugin install sales-prospecting@ai-sales-prospecting
 ```
+Then start a new session. If you type `/plugin ...` inside the Desktop app's Code tab, VS Code, or claude.ai/code you get
+*"Plugins aren't available in this environment"*: that is expected, `/plugin` only works inside a `claude` session in a
+terminal ([docs](https://code.claude.com/docs/en/plugins/install)). Inside a terminal session you can also run
+`/plugin install sales-prospecting --marketplace AbdullahDarras/ai-sales-prospecting-skill` (v2.1.275+).
+
+*Manual (no plugin commands):*
+```bash
+git clone https://github.com/AbdullahDarras/ai-sales-prospecting-skill
+mkdir -p ~/.claude/skills && cp -R ai-sales-prospecting-skill/skills/sales-prospecting ~/.claude/skills/
+```
+*Other Agent Skills-compatible agents:* `npx skills add AbdullahDarras/ai-sales-prospecting-skill` (add `-a codex` or `-a gemini-cli`),
+or copy `skills/sales-prospecting` into `~/.agents/skills/` (Codex etc.) or `.gemini/skills/` (Gemini CLI).
 Agents without native skill support: open this repo in the agent; it reads `AGENTS.md` / `GEMINI.md` and follows `SKILL.md`.
 
 **Use:** ask your agent, e.g. *"Find 5 independent cafes in Riyadh that match my ICP and draft outreach."*
