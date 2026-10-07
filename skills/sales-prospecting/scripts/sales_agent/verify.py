@@ -98,6 +98,8 @@ class Evidence:
     email: str | None = None
     email_domain_resolves: bool | None = None
     decision_maker_sources: int = 0
+    whatsapp: str | None = None
+    social_handle: bool = False          # حساب إنستغرام أو لينكدإن معروف
 
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
@@ -151,14 +153,28 @@ def _cross_match(e: Evidence) -> dict:
 def _contacts(e: Evidence) -> dict:
     pts, notes = 0, []
     phone = parse_phone(e.phone or "", e.country)
-    if phone:
-        pts += 12 if phone.is_mobile else 8
-        notes.append("جوال صالح" if phone.is_mobile else "هاتف أرضي صالح")
+    wa = parse_phone(e.whatsapp or "", e.country)
+    mobile = (phone if phone and phone.is_mobile else None) or (wa if wa and wa.is_mobile else None)
+    if mobile:
+        pts += 12
+        notes.append("جوال صالح" + (" (واتساب)" if wa and wa.is_mobile else ""))
+    elif phone or wa:
+        pts += 8
+        notes.append("هاتف أرضي صالح")
+    elif e.social_handle:
+        pts += 6
+        notes.append("حساب تواصل اجتماعي")
     if e.email and _EMAIL.match(e.email) and e.email_domain_resolves:
-        pts += 8; notes.append("إيميل صالح")
+        pts += 8
+        notes.append("إيميل صالح")
     elif e.email:
         notes.append("إيميل غير صالح أو نطاقه لا يعمل")
-    return {"points": pts, "note": "، ".join(notes) or "لا قنوات اتصال صالحة"}
+    return {"points": min(20, pts), "note": "، ".join(notes) or "لا قنوات اتصال صالحة"}
+
+
+def has_direct_channel(checks: dict) -> bool:
+    """هل يوجد وسيلة تواصل مباشرة صالحة؟ (هاتف أو واتساب أو إيميل أو حساب اجتماعي)"""
+    return checks.get("contacts", {}).get("points", 0) > 0
 
 
 def _decision_maker(e: Evidence) -> dict:
@@ -185,9 +201,14 @@ class Route:
 
 
 def route(verification: int, fit: int | None, excluded_reason: str | None,
-          reviewer_disagrees: bool = False) -> Route:
+          reviewer_disagrees: bool = False, has_channel: bool = False) -> Route:
     if verification < VERIFY_FLOOR:
-        return Route(State.DISCARDED, f"تحقق منخفض ({verification})")
+        if not has_channel:
+            return Route(State.DISCARDED, f"تحقق منخفض ({verification}) ولا توجد قناة تواصل")
+        if excluded_reason:
+            return Route(State.OUT_OF_ICP, excluded_reason)
+        # عميل يمكن التواصل معه فعلًا لا يُخفى: يُعرض للمراجعة اليدوية
+        return Route(State.UNDECIDED, f"تحقق منخفض ({verification}) لكن توجد قناة تواصل مباشرة: للمراجعة اليدوية")
     if excluded_reason:
         return Route(State.OUT_OF_ICP, excluded_reason)
     if fit is None:

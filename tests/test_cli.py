@@ -201,3 +201,86 @@ def test_enrich_brief_lists_schema_tools_and_the_lead(ws, capsys, tmp_path):
     lead = discover_one(ws, capsys, tmp_path)
     brief = run(ws, capsys, "enrich-brief", lead)
     assert "عيادة الواحة" in brief["instructions"] and "fields" in brief["schema"]["properties"]
+
+
+def test_review_accepts_an_optional_lead_id(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = to_verified(ws, capsys, tmp_path)
+    run(ws, capsys, "score-apply", lead, "--json", jfile(tmp_path, "s.json", fit(score=60)), "--review-json",
+        jfile(tmp_path, "r.json", AGREE))
+    assert run(ws, capsys, "review", lead)["leads"][0]["id"] == lead
+    assert run(ws, capsys, "review", "other")["leads"] == []
+
+
+def test_reopen_gives_a_discarded_lead_another_enrichment_pass(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = discover_one(ws, capsys, tmp_path)
+    thin = {"fields": [], "facts": {}, "identity": [], "signals": [], "concerns": []}
+    run(ws, capsys, "enrich-apply", lead, "--json", jfile(tmp_path, "t.json", thin))
+    run(ws, capsys, "verify", lead, "--no-dns")
+    assert run(ws, capsys, "show", lead)["state"] == "discarded"
+    assert run(ws, capsys, "reopen", lead)["state"] == "discovered"
+    assert run(ws, capsys, "enrich-brief", lead)["instructions"]
+
+
+def test_reopen_refuses_leads_that_are_not_discarded(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = discover_one(ws, capsys, tmp_path)
+    assert "discarded" in run(ws, capsys, "reopen", lead, expect=1)["error"]
+
+
+def test_discover_brief_explains_the_padding_and_recommends_english_queries(ws, capsys):
+    setup_identity(ws, capsys)
+    text = run(ws, capsys, "discover-brief", "VIS-3", "JO", "عمّان", "--count", 8)["instructions"]
+    assert "المطلوب بالنهاية: 8" in text and "11" in text and "بالإنجليزية" in text
+
+
+def test_mine_osm_command_adds_review_leads_and_reports(ws, capsys, monkeypatch):
+    from sales_agent.sources import osm
+    monkeypatch.setattr(osm, "_http_post", lambda url, body, headers: json.dumps({"elements": [
+        {"type": "node", "id": 1, "tags": {"amenity": "cafe", "name": "كافيه النخلة", "phone": "+962 7 9188 8683"}},
+        {"type": "node", "id": 2, "tags": {"amenity": "cafe", "name": "Starbucks", "brand": "Starbucks", "phone": "065000000"}}]}).encode())
+    run(ws, capsys, "init")
+    out = run(ws, capsys, "mine-osm", "VIS-3", "JO", "عمّان", "--area-en", "Amman", "--no-light", "--no-dns", "--limit", 10)
+    assert len(out["added"]) == 1 and out["skipped"]["chain"] == 1 and out["found_in_osm"] == 2
+    assert run(ws, capsys, "review")["leads"][0]["name"] == "كافيه النخلة"
+
+
+def test_sales_sh_wrapper_runs_the_cli_from_any_shell(tmp_path):
+    import subprocess
+    from pathlib import Path
+    sh = Path(__file__).resolve().parents[1] / "skills" / "sales-prospecting" / "scripts" / "sales.sh"
+    import os, sys
+    env = {**os.environ, "PATH": f"{Path(sys.executable).parent}:{os.environ['PATH']}"}
+    out = subprocess.run(["bash", str(sh), "--workspace", str(tmp_path / "w"), "status"], capture_output=True, text=True, env=env)
+    assert out.returncode == 0 and json.loads(out.stdout)["total"] == 0
+
+
+def test_reverify_rescues_a_discarded_lead_that_has_a_direct_channel(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = discover_one(ws, capsys, tmp_path)
+    from sales_agent.store import Store
+    from sales_agent.states import State
+    store = Store(ws / "leads.db")
+    store.transition(lead, State.ENRICHED, "t")
+    store.set_field(lead, "phone", "0500000001", "https://a.example", "own_site", 0.8)   # جوال سعودي صالح
+    store.transition(lead, State.DISCARDED, "تحقق منخفض (قاعدة قديمة)")
+    out = run(ws, capsys, "reverify", lead, "--no-dns")
+    assert out["state"] == "verified" and out["verification_score"] < 50
+
+
+def test_reverify_keeps_discarded_when_there_is_still_no_channel(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = discover_one(ws, capsys, tmp_path)
+    from sales_agent.store import Store
+    from sales_agent.states import State
+    store = Store(ws / "leads.db")
+    store.transition(lead, State.ENRICHED, "t")
+    store.transition(lead, State.DISCARDED, "t")
+    assert run(ws, capsys, "reverify", lead, "--no-dns")["state"] == "discarded"
+
+
+def test_reverify_refuses_other_states(ws, capsys, tmp_path):
+    setup_identity(ws, capsys)
+    lead = discover_one(ws, capsys, tmp_path)
+    assert "discarded" in run(ws, capsys, "reverify", lead, expect=1)["error"]

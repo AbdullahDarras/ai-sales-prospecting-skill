@@ -452,3 +452,69 @@ def test_advance_resumes_a_lead_from_its_current_state(store):
     ask = FakeAsk(fit_score=fit(), agrees=AGREE, message=DRAFT_OK)  # لا إثراء مطلوب
     assert advance(store, ask, ICP, lead, COMPANY, SENDER, dns_check=DNS_OK) == State.PENDING_APPROVAL
     assert all(k != "fields" for k, _, _ in ask.prompts)
+
+
+# ---------- بعد ملاحظات الوكلاء ----------
+def thin_enrichment(phones=(), whatsapp=None, instagram=None, closed=False):
+    fields = []
+    for p, cls in phones:
+        fields.append({"field": "phone", "value": p, "source_url": "https://m.example/c", "source_class": cls, "confidence": 0.8})
+    if whatsapp:
+        fields.append({"field": "whatsapp", "value": whatsapp, "source_url": "https://m.example/c", "source_class": "own_site", "confidence": 0.8})
+    if instagram:
+        fields.append({"field": "instagram", "value": instagram, "source_url": "https://m.example/c", "source_class": "social", "confidence": 0.8})
+    return {"fields": fields, "facts": {"maps_status": "closed", "source_url": "https://m.example/c"} if closed else {},
+            "identity": [], "signals": [], "concerns": []}
+
+
+def jo_lead(store, payload, name="كافيه عمّان"):
+    lead = store.add_lead("VIS-3", "JO", "عمّان", name)
+    apply_enrichment(store, lead, payload)
+    store.transition(lead, State.ENRICHED, "t")
+    return lead
+
+
+def test_thin_lead_with_a_mobile_is_not_discarded_but_continues_to_scoring(store):
+    lead = jo_lead(store, thin_enrichment(phones=[("0791888683", "own_site")]))
+    run_verify(store, lead, dns_check=DNS_OK)
+    assert store.get_lead(lead)["state"] == State.VERIFIED
+
+
+def test_thin_lead_without_any_channel_is_still_discarded(store):
+    lead = jo_lead(store, thin_enrichment())
+    run_verify(store, lead, dns_check=DNS_OK)
+    assert store.get_lead(lead)["state"] == State.DISCARDED
+
+
+def test_closed_business_is_discarded_even_with_a_phone(store):
+    lead = jo_lead(store, thin_enrichment(phones=[("0791888683", "own_site")], closed=True))
+    run_verify(store, lead, dns_check=DNS_OK)
+    assert store.get_lead(lead)["state"] == State.DISCARDED
+
+
+def test_best_phone_wins_when_several_are_recorded_mobile_over_landline(store):
+    lead = jo_lead(store, thin_enrichment(phones=[("0791888683", "own_site"), ("065817799", "directory")]))
+    run_verify(store, lead, dns_check=DNS_OK)
+    checks = json.loads(store.get_fields(lead)["verification_checks"]["value"])
+    assert "جوال صالح" in checks["contacts"]["note"]
+
+
+def test_whatsapp_only_lead_has_contact_points(store):
+    lead = jo_lead(store, thin_enrichment(whatsapp="0775550866"))
+    run_verify(store, lead, dns_check=DNS_OK)
+    checks = json.loads(store.get_fields(lead)["verification_checks"]["value"])
+    assert checks["contacts"]["points"] >= 12
+
+
+def test_instagram_only_lead_is_kept_for_review(store):
+    lead = jo_lead(store, thin_enrichment(instagram="@nebo_coffee"))
+    run_verify(store, lead, dns_check=DNS_OK)
+    assert store.get_lead(lead)["state"] == State.VERIFIED
+
+
+def test_scored_thin_lead_with_channel_goes_undecided_instead_of_discarded(store):
+    lead = jo_lead(store, thin_enrichment(phones=[("0791888683", "own_site")]))
+    run_verify(store, lead, dns_check=DNS_OK)
+    run_score(FakeAsk(fit_score=fit(score=85), agrees=AGREE), store, lead, load_icp("VIS-3"))
+    assert store.get_lead(lead)["state"] == State.UNDECIDED
+    assert "قناة تواصل" in store.history(lead)[-1]["reason"]

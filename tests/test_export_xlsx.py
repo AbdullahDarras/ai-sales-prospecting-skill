@@ -178,3 +178,15 @@ def test_existing_channel_choice_is_not_overridden(store, tmp_path):
                  "channel": ("email", "system", "system")})
     ws = build(store, tmp_path)[SHEET_REVIEW]
     assert dict(zip(headers(ws), rows(ws)[0]))["القناة المقترحة"] == "إيميل"
+
+
+def test_whatsapp_link_is_clickable_for_mobile_numbers_only(store, tmp_path):
+    lead(store, "جوال", code="VIS-3", country="JO", city="عمّان", path=UNDECIDED, verification=40, fit=None,
+         fields={"phone": ("0791888683", "https://a.example", "maps")})
+    lead(store, "أرضي", code="VIS-3", country="JO", city="عمّان", path=UNDECIDED, verification=40, fit=None,
+         fields={"phone": ("065817799", "https://a.example", "maps")})
+    ws = build(store, tmp_path)[SHEET_REVIEW]
+    cols = headers(ws)
+    links = {ws.cell(r, 2).value: ws.cell(r, cols.index("رابط واتساب") + 1).hyperlink for r in range(2, ws.max_row + 1)}
+    assert links["جوال"].target == "https://wa.me/962791888683"
+    assert links["أرضي"] is None

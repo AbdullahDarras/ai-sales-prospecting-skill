@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# يشغّل sales_cli.py من أي صدفة (zsh أو bash) بدون متغيرات: bash sales.sh --workspace ./sales-workspace <أمر> ...
+exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sales_cli.py" "$@"

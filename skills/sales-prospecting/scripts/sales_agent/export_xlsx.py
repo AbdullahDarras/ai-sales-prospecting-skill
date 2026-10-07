@@ -16,7 +16,7 @@ from .channels import choose_channel
 from .icp_config import IcpConfigError, list_icps, load_icp
 from .states import State, label_ar
 from .store import Store
-from .verify import FIT_READY, VERIFY_FLOOR, VERIFY_READY
+from .verify import FIT_READY, VERIFY_FLOOR, VERIFY_READY, parse_phone
 
 SHEET_SUMMARY, SHEET_REVIEW, SHEET_EXCLUDED, SHEET_NOTES = "ملخص", "للتواصل والمراجعة", "مستبعد", "ملاحظات"
 
@@ -25,10 +25,10 @@ _EXCLUDED = {State.OUT_OF_ICP, State.DISCARDED, State.REJECTED, State.STUCK, Sta
 _CHANNEL_AR = {"whatsapp": "واتساب", "instagram": "إنستغرام", "email": "إيميل", "linkedin": "لينكدإن"}
 
 _REVIEW_HEADERS = ["#", "الاسم", "الشريحة", "الدولة", "المدينة", "الحالة", "درجة التحقق", "درجة الملاءمة",
-                   "صاحب القرار", "المسمى", "الهاتف", "واتساب", "الإيميل", "إنستغرام", "الموقع", "لينكدإن",
+                   "صاحب القرار", "المسمى", "الهاتف", "واتساب", "رابط واتساب", "الإيميل", "إنستغرام", "فيسبوك", "الموقع", "لينكدإن",
                    "القناة المقترحة", "سبب التأهيل", "تنبيهات للمراجع", "مصدر الحكم", "سبب الحالة",
                    "الرسالة المقترحة", "تاريخ الاكتشاف"]
-_REVIEW_WIDTHS = [5, 34, 26, 11, 12, 15, 12, 12, 22, 24, 17, 17, 26, 24, 28, 24, 14, 60, 60, 18, 36, 70, 14]
+_REVIEW_WIDTHS = [5, 34, 26, 11, 12, 15, 12, 12, 22, 24, 17, 17, 14, 26, 24, 24, 28, 24, 14, 60, 60, 18, 36, 70, 14]
 _EXCLUDED_HEADERS = ["#", "الاسم", "الشريحة", "الدولة", "المدينة", "الحالة", "درجة التحقق", "سبب الاستبعاد", "الموقع"]
 _EXCLUDED_WIDTHS = [5, 34, 26, 11, 12, 16, 12, 70, 28]
 
@@ -71,6 +71,15 @@ def _suggested_channel(lead: dict, values: dict) -> str:
     return _CHANNEL_AR.get(choice.primary or "", "")
 
 
+def _whatsapp_link(lead: dict, values: dict) -> str | None:
+    """رابط محادثة واتساب جاهز، لأرقام الجوال الصالحة فقط (الأرضي لا يستقبل واتساب)."""
+    for raw in (values.get("whatsapp"), values.get("phone")):
+        phone = parse_phone(raw or "", lead["country"])
+        if phone and phone.is_mobile:
+            return "https://wa.me/" + phone.e164.lstrip("+")
+    return None
+
+
 def _collect(store: Store, segments: dict[str, str]) -> list[dict]:
     out = []
     for lead in store.search_leads(limit=100000):
@@ -89,6 +98,7 @@ def _collect(store: Store, segments: dict[str, str]) -> list[dict]:
             "fit_source": fit_obs.get("source_url", ""),
             "discovered": lead["created_at"][:10],
             "channel": _suggested_channel(lead, values),
+            "wa_link": _whatsapp_link(lead, values),
         })
     return out
 
@@ -139,7 +149,8 @@ def _review_sheet(wb, items):
             n, i["lead"]["name"], i["segment"], i["country"], i["lead"]["city"], label_ar(i["state"]),
             _int(v.get("verification_score")), _int(v.get("fit_score")),
             v.get("decision_maker_name", ""), v.get("decision_maker_title", ""),
-            v.get("phone", ""), v.get("whatsapp", ""), v.get("email", ""), v.get("instagram", ""),
+            v.get("phone", ""), v.get("whatsapp", ""), "فتح واتساب" if i["wa_link"] else "",
+            v.get("email", ""), v.get("instagram", ""), v.get("facebook", ""),
             v.get("website", ""), v.get("linkedin_url", ""),
             i["channel"], v.get("fit_reason", ""),
             "\n".join(f"• {c}" for c in i["concerns"]), "المصدر" if i["fit_source"].startswith("http") else "",
@@ -153,6 +164,8 @@ def _review_sheet(wb, items):
         v = i["v"]
         _hyperlink(ws.cell(r, col["الموقع"]), _link_for("website", v.get("website")))
         _hyperlink(ws.cell(r, col["إنستغرام"]), _link_for("instagram", v.get("instagram")))
+        _hyperlink(ws.cell(r, col["رابط واتساب"]), i["wa_link"])
+        _hyperlink(ws.cell(r, col["فيسبوك"]), _link_for("facebook", v.get("facebook")))
         _hyperlink(ws.cell(r, col["لينكدإن"]), _link_for("linkedin", v.get("linkedin_url")))
         _hyperlink(ws.cell(r, col["مصدر الحكم"]), i["fit_source"] if i["fit_source"].startswith("http") else None)
     return ws

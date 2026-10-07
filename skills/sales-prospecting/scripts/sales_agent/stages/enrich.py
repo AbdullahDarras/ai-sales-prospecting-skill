@@ -10,7 +10,7 @@ from ..store import Store
 from .common import is_http, dossier
 
 TOOLS = ("WebSearch", "WebFetch")
-ALLOWED_FIELDS = ["specialty", "website", "phone", "whatsapp", "email", "instagram", "linkedin_url",
+ALLOWED_FIELDS = ["specialty", "website", "phone", "whatsapp", "email", "instagram", "facebook", "linkedin_url",
                   "decision_maker_name", "decision_maker_title", "name_ar", "name_en"]
 _CLASSES = ["maps", "own_site", "official", "directory", "social"]
 _NULL_BOOL, _NULL_INT = {"type": ["boolean", "null"]}, {"type": ["integer", "null"]}

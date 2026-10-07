@@ -67,3 +67,16 @@ def test_undecided_can_be_promoted_back_to_scored_for_drafting():
 def test_undecided_cannot_skip_to_approved():
     with pytest.raises(InvalidTransition):
         check_transition(State.UNDECIDED, State.APPROVED)
+
+
+def test_discarded_lead_can_be_reopened_for_another_enrichment_pass():
+    check_transition(State.DISCARDED, State.DISCOVERED)
+
+
+def test_out_of_icp_cannot_be_reopened():
+    with pytest.raises(InvalidTransition):
+        check_transition(State.OUT_OF_ICP, State.DISCOVERED)
+
+
+def test_discarded_lead_can_be_reverified_under_current_rules():
+    check_transition(State.DISCARDED, State.ENRICHED)

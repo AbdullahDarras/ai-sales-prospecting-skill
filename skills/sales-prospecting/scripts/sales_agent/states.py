@@ -50,6 +50,7 @@ _PIPELINE = {
     State.PENDING_APPROVAL: {State.APPROVED, State.REJECTED},
     State.APPROVED: {State.SENT, State.STUCK},
     State.UNDECIDED: {State.REJECTED, State.SCORED},
+    State.DISCARDED: {State.DISCOVERED, State.ENRICHED},     # إعادة فتح يدوية لجولة إثراء ثانية
 }
 
 _BLOCKABLE = {

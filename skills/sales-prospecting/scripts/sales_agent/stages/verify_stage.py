@@ -7,7 +7,7 @@ import socket
 
 from ..states import State
 from ..store import Store
-from ..verify import Evidence, names_match, route, verification_score
+from ..verify import Evidence, has_direct_channel, names_match, parse_phone, route, verification_score
 
 _CLASS_AR = {"maps": "الخرائط", "own_site": "موقع المنشأة", "official": "مصدر رسمي",
              "directory": "دليل", "social": "السوشال"}
@@ -25,6 +25,18 @@ def default_dns(domain: str) -> bool:
 
 def _bool(value):
     return None if value is None else value == "true"
+
+
+def _best_phone(values: list[str], country: str) -> str | None:
+    """أفضل رقم من عدة أرقام: الجوال الصالح أولًا، ثم أي رقم صالح، ثم آخر قيمة."""
+    parsed = [(v, parse_phone(v, country)) for v in values]
+    for v, p in parsed:
+        if p and p.is_mobile:
+            return v
+    for v, p in parsed:
+        if p:
+            return v
+    return values[-1] if values else None
 
 
 def build_evidence(store: Store, lead_id: str, dns_check) -> Evidence:
@@ -49,11 +61,14 @@ def build_evidence(store: Store, lead_id: str, dns_check) -> Evidence:
         resolves = dns_check(m.group(1))
 
     days = fields.get("social_last_post_days")
+    phone = _best_phone([o["value"] for o in obs.get("phone", [])], lead["country"])
+    whatsapp = _best_phone([o["value"] for o in obs.get("whatsapp", [])], lead["country"])
     return Evidence(
         country=lead["country"], website_up=_bool(fields.get("website_up")),
         maps_status=fields.get("maps_status", "unknown"),
         social_last_post_days=int(days) if days is not None else None,
-        identity=identity, phone=fields.get("phone"), email=email,
+        identity=identity, phone=phone, whatsapp=whatsapp, email=email,
+        social_handle=bool(fields.get("instagram") or fields.get("facebook") or fields.get("linkedin_url")),
         email_domain_resolves=resolves, decision_maker_sources=dm_sources,
     )
 
@@ -66,7 +81,8 @@ def run_verify(store: Store, lead_id: str, dns_check=default_dns) -> None:
     store.set_field(lead_id, "verification_checks", json.dumps(checks, ensure_ascii=False), "system", "system", 1.0)
     store.set_field(lead_id, "verification_sources", "، ".join(_CLASS_AR.get(c, c) for c in classes) or "لا شيء",
                     "system", "system", 1.0)
-    decision = route(score, None, None)
+    closed = evidence.maps_status == "closed"
+    decision = route(score, None, None, has_channel=has_direct_channel(checks) and not closed)
     if decision.state == State.DISCARDED:
         store.transition(lead_id, State.DISCARDED, decision.reason)
     else:

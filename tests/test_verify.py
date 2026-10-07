@@ -179,3 +179,43 @@ def test_direct_mobile_vs_unified_company_number_is_flagged_as_conflict():
         {"source_class": "directory", "name": "مراس الخليج الطبي", "phone": "+966 9200 05097"}]))
     assert conflict < agree
     assert "تضارب" in c["cross_match"]["note"]
+
+
+# ---------- قنوات التواصل: واتساب وإنستغرام يُحتسبان ----------
+def test_whatsapp_number_counts_as_a_direct_channel():
+    s, c = verification_score(ev(whatsapp="0775550866", country="JO"))
+    assert c["contacts"]["points"] == 12
+
+
+def test_phone_and_whatsapp_do_not_double_count():
+    s, c = verification_score(ev(phone="0775550866", whatsapp="0775550866", country="JO"))
+    assert c["contacts"]["points"] == 12
+
+
+def test_social_handle_alone_gives_a_smaller_channel_credit():
+    _, c = verification_score(ev(social_handle=True, country="JO"))
+    assert c["contacts"]["points"] == 6
+    _, c2 = verification_score(ev(phone="0775550866", social_handle=True, country="JO"))
+    assert c2["contacts"]["points"] == 12                      # الهاتف يكفي، لا مضاعفة
+
+
+def test_has_direct_channel_reflects_contact_points():
+    from sales_agent.verify import has_direct_channel
+    _, c = verification_score(ev(phone="0775550866", country="JO"))
+    assert has_direct_channel(c) is True
+    _, c0 = verification_score(ev(country="JO"))
+    assert has_direct_channel(c0) is False
+
+
+# ---------- التوجيه: لا يُهمَل عميل عنده قناة مباشرة ----------
+def test_low_verification_with_a_direct_channel_goes_to_manual_review_not_discard():
+    r = route(40, None, None, has_channel=True)
+    assert r.state == State.UNDECIDED and "قناة تواصل" in r.reason
+
+
+def test_low_verification_without_a_channel_is_still_discarded():
+    assert route(40, None, None, has_channel=False).state == State.DISCARDED
+
+
+def test_low_verification_with_channel_but_hard_excluded_is_out_of_icp():
+    assert route(40, 80, "أكثر من 50 موظفًا", has_channel=True).state == State.OUT_OF_ICP

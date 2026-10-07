@@ -2,12 +2,13 @@
 والدرجة العالية بلا دليل مخزَّن تُخفَّض، والحالات الحدّية يراجعها مراجِع معاكس."""
 
 from __future__ import annotations
+import json
 from dataclasses import dataclass
 
 from ..icp_config import Icp
 from ..states import State
 from ..store import Store
-from ..verify import FIT_READY, route
+from ..verify import FIT_READY, has_direct_channel, route
 from .common import dossier, is_http, known_urls, latest_values
 
 SCHEMA = {
@@ -86,6 +87,7 @@ class Assessment:
     reason: str
     verification: int
     needs_review: bool
+    has_channel: bool = False
 
 
 class ReviewRequired(Exception):
@@ -122,8 +124,13 @@ def assess(store: Store, lead_id: str, icp: Icp, result: dict) -> Assessment:
         score = min(score, UNPROVEN_CAP)  # لا دليل، لا ثقة
     model_exclusion = (result.get("excluded_reason") or "").strip() or None
     needs_review = not model_exclusion and (60 <= score < 80 or 70 <= verification < 80)
+    try:
+        checks = json.loads(values.get("verification_checks", "{}"))
+    except json.JSONDecodeError:
+        checks = {}
     return Assessment(score, urls, result.get("label", "unknown"), model_exclusion,
-                      (result.get("reason") or "").strip()[:300] or "بلا سبب مذكور", verification, needs_review)
+                      (result.get("reason") or "").strip()[:300] or "بلا سبب مذكور", verification, needs_review,
+                      has_direct_channel(checks))
 
 
 def review_brief(store: Store, lead_id: str, a: Assessment) -> dict:
@@ -145,7 +152,8 @@ def apply_score(store: Store, lead_id: str, icp: Icp, result: dict, review: dict
     store.set_field(lead_id, "fit_label", a.label, "system", "system", 1.0)
     store.set_field(lead_id, "fit_reason", a.reason, a.urls[0] if a.urls else "system",
                     "web" if a.urls else "system", 0.7)
-    decision = route(a.verification, a.score, a.model_exclusion, reviewer_disagrees=disagrees)
+    decision = route(a.verification, a.score, a.model_exclusion, reviewer_disagrees=disagrees,
+                     has_channel=a.has_channel)
     if decision.state in (State.OUT_OF_ICP, State.UNDECIDED):
         store.transition(lead_id, decision.state, decision.reason)
     return store.get_lead(lead_id)["state"]

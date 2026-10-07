@@ -26,7 +26,8 @@ SCHEMA = {
 }
 
 
-def _prompt(icp: Icp, country: str, city: str, want: int, known: list[str]) -> str:
+def _prompt(icp: Icp, country: str, city: str, count: int, known: list[str]) -> str:
+    want = count + 3
     country_ar = COUNTRY_AR.get(country, country)
     hints = "\n".join("- " + h.format(city=city, country=country_ar) for h in icp.search_hints)
     sources = "\n".join("- " + s for s in icp.source_hints)
@@ -57,7 +58,8 @@ def _prompt(icp: Icp, country: str, city: str, want: int, known: list[str]) -> s
 - أعد فقط منشآت ظهرت فعلًا في نتائج البحث أو الصفحات التي فتحتها.
 - لكل منشأة source_url هو رابط الصفحة الحقيقية التي رأيتَ فيها المنشأة. ممنوع اختراع رابط أو اسم.
 - ضع website إن وجدت موقع المنشأة نفسها، وإلا اتركه فارغًا.
-- العدد الأقصى المطلوب من المنشآت الجديدة: {want}. أعد أقل إن لم تجد، ولا تُكمل العدد بالتخمين.
+- المطلوب بالنهاية: {count} منشآت جديدة. أعد حتى {want} مرشحًا لأن بعضها سيُستبعد (تكرار أو كبير). أعد أقل إن لم تجد، ولا تُكمل العدد بالتخمين.
+- ابحث بأسماء المدن بالإنجليزية (مثل Amman) فنتائج أدوات البحث بها أفضل، واحتفظ بالأسماء العربية كما وردت.
 - هذه منشآت سبق اكتشافها، لا تعدها:
 {known_block}"""
 
@@ -104,7 +106,7 @@ def known_names(store: Store, icp: Icp, country: str) -> list[str]:
 
 
 def discover_brief(store: Store, icp: Icp, country: str, city: str, count: int) -> dict:
-    return {"instructions": _prompt(icp, country, city, count + 3, known_names(store, icp, country)),
+    return {"instructions": _prompt(icp, country, city, count, known_names(store, icp, country)),
             "schema": SCHEMA, "tools": list(TOOLS)}
 
 

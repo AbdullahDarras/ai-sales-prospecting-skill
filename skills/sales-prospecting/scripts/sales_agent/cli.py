@@ -18,6 +18,7 @@ from .countries import COUNTRY_AR
 from .demo_seed import clear_demo, seed_demo
 from .export_xlsx import export_xlsx
 from .icp_config import IcpConfigError, list_icps, load_icp
+from .sources import osm
 from .stages.discover import add_candidates, discover_brief
 from .stages.draft import apply_draft, draft_brief
 from .stages.enrich import apply_enrichment, enrich_brief
@@ -109,8 +110,19 @@ def _build_parser() -> argparse.ArgumentParser:
     n = sub.add_parser("next"); n.add_argument("--state"); n.add_argument("--limit", type=int, default=20)
     ls = sub.add_parser("list")
     ls.add_argument("--state"); ls.add_argument("--code"); ls.add_argument("--country"); ls.add_argument("--limit", type=int, default=200)
-    sub.add_parser("review")
-    for name in ("show", "enrich-brief", "score-brief", "draft-brief", "promote"):
+    rv = sub.add_parser("review"); rv.add_argument("lead_id", nargs="?")
+    mo = sub.add_parser("mine-osm", help="منجم من خريطة OpenStreetMap: مطاعم/كافيهات/شركات ذات وسائل تواصل")
+    mo.add_argument("code"); mo.add_argument("country", choices=sorted(COUNTRY_AR)); mo.add_argument("city")
+    mo.add_argument("--area-en", required=True, help="اسم المنطقة بالإنجليزية كما في OSM، مثل Amman")
+    mo.add_argument("--kinds", default=",".join(osm.DEFAULT_KINDS), help="مفتاح=قيمة مفصولة بفاصلة، مثل amenity=cafe,office=estate_agent")
+    mo.add_argument("--limit", type=int, default=60)
+    mo.add_argument("--no-light", action="store_true", help="لا تقرأ مواقع الأماكن")
+    mo.add_argument("--no-dns", action="store_true")
+    for name in ("show", "enrich-brief", "score-brief", "draft-brief", "promote", "reopen"):
+        sub.add_parser(name).add_argument("lead_id")
+    rvf = sub.add_parser("reverify", help="إعادة تقييم عميل مُهمَل بالقواعد الحالية دون إعادة بحث")
+    rvf.add_argument("lead_id"); rvf.add_argument("--no-dns", action="store_true")
+    for name in ():
         sub.add_parser(name).add_argument("lead_id")
     for name in ("enrich-apply", "score-apply", "draft-apply"):
         a = sub.add_parser(name); a.add_argument("lead_id"); a.add_argument("--json", required=True)
@@ -161,9 +173,36 @@ def _dispatch(args, store: Store, ws: Path) -> int:
             leads = store.search_leads(state, getattr(args, "code", None), getattr(args, "country", None), limit=args.limit)
         return _emit({"leads": [_card(store, l) for l in leads[:args.limit]]})
     if c == "review":
+        leads = store.leads_in_state(State.UNDECIDED, limit=500)
+        if args.lead_id:
+            leads = [l for l in leads if l["id"] == args.lead_id]
         return _emit({"leads": [{**_card(store, l), "reason": store.history(l["id"])[-1]["reason"],
                                  "concerns": [o["value"] for o in store.get_observations(l["id"], "concern")]}
-                                for l in store.leads_in_state(State.UNDECIDED, limit=500)]})
+                                for l in leads]})
+    if c == "reopen":
+        _lead(store, args.lead_id, State.DISCARDED, action="إعادة الفتح")
+        store.transition(args.lead_id, State.DISCOVERED, "إعادة فتح يدوية لجولة إثراء ثانية")
+        return _emit({"state": "discovered", "next": "enrich"})
+    if c == "reverify":
+        _lead(store, args.lead_id, State.DISCARDED, action="إعادة التحقق")
+        store.transition(args.lead_id, State.ENRICHED, "إعادة تحقق بالقواعد الحالية")
+        run_verify(store, args.lead_id, dns_check=(lambda d: True) if args.no_dns else default_dns)
+        f = store.get_fields(args.lead_id)
+        return _emit({"state": store.get_lead(args.lead_id)["state"].value,
+                      "verification_score": int(f["verification_score"]["value"])})
+    if c == "mine-osm":
+        icp = load_icp(args.code)
+        try:
+            elements = osm.fetch_overpass(osm.build_query(args.area_en, [k.strip() for k in args.kinds.split(",") if k.strip()]))
+        except OSError as e:
+            raise CliError(f"تعذّر الوصول إلى خريطة OpenStreetMap: {e}") from None
+        candidates = osm.parse_elements(elements)
+        result = osm.mine(store, icp, args.country, args.city, candidates, args.limit,
+                          light_fetch=None if args.no_light else osm._http_get,
+                          dns_check=(lambda d: True) if args.no_dns else None)
+        return _emit({"found_in_osm": len(candidates), **result,
+                      "added_names": [store.get_lead(i)["name"] for i in result["added"]],
+                      "next": "review (ثم promote لمن يستحق، ثم draft-brief)"})
     if c == "show":
         lead = _lead(store, args.lead_id)
         obs = store.all_observations(args.lead_id)
