@@ -91,3 +91,16 @@ def test_readme_leads_with_the_in_app_install_and_links_the_install_file():
 def test_skill_md_tells_agents_how_to_prepare_dependencies():
     skill = (ROOT / "skills" / "sales-prospecting" / "SKILL.md").read_text(encoding="utf-8")
     assert "bootstrap.py" in skill and "pip install" not in skill
+
+
+def test_readme_discloses_everything_the_plugin_runs_and_sends():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    for needle in ("ماذا تشغّل المهارة", "127.0.0.1", "pyyaml", "لا ترسل"):
+        assert needle in text
+    assert "What the skill runs" in text
+
+
+def test_plugin_folder_stays_within_directory_limits():
+    files = list(repo_files())
+    assert len(files) <= 512
+    assert max(p.stat().st_size for p in files if p.suffix not in {".png", ".jpg"}) < 256 * 1024

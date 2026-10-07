@@ -95,6 +95,17 @@ python3 skills/sales-prospecting/scripts/sales_cli.py --workspace ./sales-worksp
 كل الأوامر موثقة في [`references/cli-reference.md`](skills/sales-prospecting/references/cli-reference.md).
 بياناتك تبقى في `./sales-workspace` على جهازك (وتُستبعد من git).
 
+## ماذا تشغّل المهارة (شفافية كاملة)
+
+- **سكربتات بايثون محلية** تقرأ وتكتب فقط في مجلد `./sales-workspace` (قاعدة SQLite وملفات التصدير). **لا ترسل أي بيانات إلى أي خادم** ولا تجمع إحصاءات استخدام.
+- **الاتصال بالشبكة الوحيد من السكربتات:** (1) `bootstrap.py` يثبّت `pyyaml` و`openpyxl` و`fastapi` و`uvicorn` من PyPI داخل بيئة معزولة في `~/.sales-prospecting/venv` (مرة واحدة)،
+  (2) أمر `verify` يتحقق أن نطاق الإيميل موجود عبر استعلام DNS (يُعطَّل بـ`--no-dns`)،
+  (3) صفحة «التشغيل» بالواجهة (اختيارية) تستدعي أمر `claude` المحلي إن كان Claude Code مثبتًا.
+- **البحث على الإنترنت** يتم بأدوات وكيلك أنت (بحث وفتح صفحات عامة)، لا بالسكربتات.
+- **واجهة الاعتماد** تعمل على `127.0.0.1` فقط (جهازك)، ولا تُعرَّض للشبكة.
+- **لا شيء يُرسل للعملاء:** الرسائل مسودات، والإرسال قرار بشري.
+- `INSTALL.md` ينزّل أرشيف هذا المستودع من GitHub وينسخ مجلد المهارة إلى `~/.claude/skills/` فقط.
+
 ## حدود يجب أن تعرفها
 
 اختُبرت على بيانات حقيقية (الخليج، عيادات ومطاعم وشركات خدمية). اقرأ
@@ -161,6 +172,12 @@ Agents without native skill support: open this repo in the agent; it reads `AGEN
 **Use:** ask your agent, e.g. *"Find 5 independent cafes in Riyadh that match my ICP and draft outreach."*
 It asks for the segment plus your sender and company names (used in the message signature), then runs the workflow.
 Add your own segments as YAML (`references/icp-authoring.md`); three examples are bundled.
+
+**What the skill runs.** Local Python scripts that read/write only `./sales-workspace` (SQLite + exports); they do not send data to any
+server and collect no telemetry. Network use by the scripts: `bootstrap.py` pip-installs `pyyaml`, `openpyxl`, `fastapi`, `uvicorn` into an isolated
+venv at `~/.sales-prospecting/venv` (once); `verify` does DNS lookups of email domains (`--no-dns` disables it); the optional UI "Run" page calls
+the local `claude` CLI if installed. Web research is done by your agent's own tools. The UI binds to `127.0.0.1` only. Nothing is sent to prospects:
+messages are drafts and sending is a human decision.
 
 **Know the limits** ([`limitations.md`](skills/sales-prospecting/references/limitations.md)): on real tests no lead
 passed the automatic readiness thresholds (public data rarely proves owners, maps status or last post), thresholds are
