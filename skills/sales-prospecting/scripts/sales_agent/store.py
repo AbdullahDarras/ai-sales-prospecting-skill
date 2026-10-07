@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import sqlite3
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -86,11 +87,20 @@ def _lead_id(code: str, country: str, name: str) -> str:
 class Store:
     def __init__(self, path):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        # الواجهة ومهام الخلفية تصل من خيوط مختلفة. WAL ومهلة الانتظار يخففان تعارض الكتابة.
-        self._db = sqlite3.connect(str(path), check_same_thread=False, timeout=15)
-        self._db.execute("PRAGMA journal_mode=WAL")
-        self._db.row_factory = sqlite3.Row
+        self._path = str(path)
+        self._local = threading.local()   # اتصال مستقل لكل خيط: الواجهة تطلب عدة نقاط معًا والمشغّل يكتب بالخلفية
         self._db.executescript(_SCHEMA)
+
+    @property
+    def _db(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            # WAL يسمح بقراءة متزامنة مع كتابة، ومهلة الانتظار تمنع تعارض الكتابة
+            conn = sqlite3.connect(self._path, timeout=15)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.row_factory = sqlite3.Row
+            self._local.conn = conn
+        return conn
 
     def add_lead(self, code: str, country: str, city: str, name: str) -> str:
         lead_id = _lead_id(code, country, name)

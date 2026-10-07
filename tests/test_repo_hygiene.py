@@ -12,7 +12,20 @@ FORBIDDEN_SUFFIXES = {".db", ".db-wal", ".db-shm", ".xlsx", ".otf", ".ttf", ".wo
 THIS = Path(__file__).resolve()
 
 
+def _tracked_files():
+    """ما سيُنشر فعلًا: الملفات المتتبَّعة بـgit. (ملفات محلية مستبعدة، مثل خط تضعه بنفسك، لا تُحتسب.)"""
+    import subprocess
+    if not (ROOT / ".git").exists():
+        return None
+    out = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True)
+    return [ROOT / line for line in out.stdout.splitlines() if line] if out.returncode == 0 else None
+
+
 def repo_files():
+    tracked = _tracked_files()
+    if tracked is not None:
+        yield from (p for p in tracked if p.is_file())
+        return
     for p in ROOT.rglob("*"):
         if p.is_file() and not (set(p.relative_to(ROOT).parts) & SKIP_DIRS):
             yield p
