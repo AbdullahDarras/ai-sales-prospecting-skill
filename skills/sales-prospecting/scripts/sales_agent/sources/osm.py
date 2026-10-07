@@ -27,6 +27,16 @@ _WEB_KEYS = ("website", "contact:website", "url")
 _IG_KEYS = ("contact:instagram", "instagram")
 _FB_KEYS = ("contact:facebook", "facebook")
 _MAIL_KEYS = ("email", "contact:email")
+# سلاسل عالمية وإقليمية معروفة (خريطة OSM لا تعلّم كل الماركات). حذف الفراغات والتشكيل قبل المقارنة.
+KNOWN_CHAINS = [
+    "starbucks", "ستاربكس", "mcdonald", "ماكدونالد", "kfc", "كنتاكي", "burgerking", "برجركنج", "burgerking",
+    "dominos", "دومينوز", "pizzahut", "بيتزاهت", "papajohn", "باباجونز", "hardees", "هارديز", "subway", "صب واي",
+    "dunkin", "دانكن", "timhortons", "تيمهورتنز", "costacoffee", "كوستا", "caribou", "كاريبو", "segafredo", "سيغافريدو",
+    "gloriajean", "جلوريا جينز", "tgifridays", "chilis", "تشيليز", "applebee", "popeyes", "بوبايز", "baskinrobbins",
+    "cinnabon", "krispykreme", "shakeshack", "fuddruckers", "wingstop", "texasroadhouse", "carlsjr", "ikea",
+    "zaatarwzeit", "زعترو زيت", "zaatarwzeit", "reemalbawadi", "ريم البوادي", "shawermareem", "shawarmareem", "شاورماريم",
+    "alromansiah", "kudu", "كودو", "herfy", "هرفي", "albaik", "البيك", "maestro", "مايسترو بيتزا",
+]
 _IG_RESERVED = {"p", "explore", "reel", "reels", "accounts", "tv", "stories", "about", "direct", "web"}
 _FB_RESERVED = {"sharer", "sharer.php", "plugins", "tr", "dialog", "share", "login", "policies"}
 
@@ -76,6 +86,15 @@ def fetch_overpass(query: str, post=None, url: str = OVERPASS_URL, sleep=time.sl
             sleep(10 * attempt)
 
 
+def _squash(name: str) -> str:
+    return re.sub(r"[^\w]", "", normalize_name(name)).replace("_", "")
+
+
+def is_known_chain(name: str) -> bool:
+    s = _squash(name)
+    return any(_squash(c) and _squash(c) in s for c in KNOWN_CHAINS)
+
+
 def _first(tags: dict, keys) -> str | None:
     return next((tags[k].strip() for k in keys if tags.get(k, "").strip()), None)
 
@@ -101,7 +120,7 @@ def parse_elements(elements: list[dict]) -> list[dict]:
                 "source_url": f"https://www.openstreetmap.org/{e['type']}/{e['id']}",
                 "is_chain": False, "branches": 0}
         cand["branches"] += 1
-        cand["is_chain"] = cand["is_chain"] or bool(tags.get("brand") or tags.get("brand:wikidata"))
+        cand["is_chain"] = cand["is_chain"] or bool(tags.get("brand") or tags.get("brand:wikidata")) or is_known_chain(name)
         for p in phones:
             if p not in cand["phones"]:
                 cand["phones"].append(p)

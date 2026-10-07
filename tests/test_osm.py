@@ -185,3 +185,14 @@ def test_fetch_does_not_retry_client_errors():
     with pytest.raises(urllib.error.HTTPError):
         osm.fetch_overpass("bad query", post=bad, sleep=lambda s: None)
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize("name", ["Segafredo Zanetti", "McDonald's Abdoun", "Pizza Hut", "كنتاكي KFC", "Zaatar w Zeit", "شاورما ريم", "ستاربكس"])
+def test_known_regional_and_global_chains_are_flagged_even_without_a_brand_tag(name):
+    cands = osm.parse_elements([el(90, name, phone="0791234567")])
+    assert cands[0]["is_chain"] is True
+
+
+def test_independent_names_are_not_flagged_as_chains():
+    for name in ["كافيه النخلة", "Dimitri's coffee", "Bun Fellows", "مخبز الأمل"]:
+        assert osm.parse_elements([el(91, name, phone="0791234567")])[0]["is_chain"] is False
