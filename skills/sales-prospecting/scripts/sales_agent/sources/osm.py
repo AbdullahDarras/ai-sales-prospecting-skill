@@ -9,6 +9,7 @@ import json
 import re
 import ssl
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -57,12 +58,22 @@ def build_query(area_en: str, kinds: list[str]) -> str:
             "(\n" + "\n".join(lines) + "\n);\nout center tags;")
 
 
-def fetch_overpass(query: str, post=None, url: str = OVERPASS_URL) -> list[dict]:
+_TRANSIENT_HTTP = {429, 500, 502, 503, 504}
+
+
+def fetch_overpass(query: str, post=None, url: str = OVERPASS_URL, sleep=time.sleep, attempts: int = 3) -> list[dict]:
+    """الخادم المجاني يزدحم أحيانًا (504/429): نعيد المحاولة بتأخير متزايد، ولا نعيد لأخطاء الاستعلام نفسه."""
     post = post or _http_post
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json",
                "Content-Type": "application/x-www-form-urlencoded"}
-    raw = post(url, urllib.parse.urlencode({"data": query}), headers)
-    return json.loads(raw)["elements"]
+    body = urllib.parse.urlencode({"data": query})
+    for attempt in range(1, attempts + 1):
+        try:
+            return json.loads(post(url, body, headers))["elements"]
+        except urllib.error.HTTPError as e:
+            if e.code not in _TRANSIENT_HTTP or attempt == attempts:
+                raise
+            sleep(10 * attempt)
 
 
 def _first(tags: dict, keys) -> str | None:

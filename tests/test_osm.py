@@ -147,3 +147,41 @@ def test_mine_drops_website_only_place_when_no_channel_is_found(store):
     out = osm.mine(store, VIS3, "JO", "عمّان", cands, limit=5, light_fetch=lambda url: "<html>nothing</html>",
                    sleep=lambda s: None, dns_check=lambda d: True)
     assert out["added"] == [] and out["skipped"]["no_contact"] == 1
+
+
+def test_fetch_retries_transient_server_errors_then_succeeds():
+    import urllib.error
+    calls = []
+
+    def flaky(url, body, headers):
+        calls.append(url)
+        if len(calls) < 3:
+            raise urllib.error.HTTPError(url, 504, "Gateway Timeout", {}, None)
+        return json.dumps({"elements": [{"id": 1}]}).encode()
+
+    sleeps = []
+    assert osm.fetch_overpass("q", post=flaky, sleep=sleeps.append) == [{"id": 1}]
+    assert len(calls) == 3 and len(sleeps) == 2
+
+
+def test_fetch_gives_up_after_the_attempts_and_raises_the_last_error():
+    import urllib.error
+
+    def always(url, body, headers):
+        raise urllib.error.HTTPError(url, 429, "Too Many Requests", {}, None)
+
+    with pytest.raises(urllib.error.HTTPError):
+        osm.fetch_overpass("q", post=always, sleep=lambda s: None, attempts=3)
+
+
+def test_fetch_does_not_retry_client_errors():
+    import urllib.error
+    calls = []
+
+    def bad(url, body, headers):
+        calls.append(1)
+        raise urllib.error.HTTPError(url, 400, "Bad Request", {}, None)
+
+    with pytest.raises(urllib.error.HTTPError):
+        osm.fetch_overpass("bad query", post=bad, sleep=lambda s: None)
+    assert len(calls) == 1
