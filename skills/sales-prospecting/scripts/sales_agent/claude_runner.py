@@ -3,6 +3,8 @@
 أعلام تقليل السياق مُقاسة بتجربة حقيقية: من نحو 44 ألف توكن إلى نحو ألف توكن للاستدعاء.
 لا نستخدم --bare لأنه يقرأ مفتاح API فقط ولا يقرأ تسجيل دخول الاشتراك.
 """
+
+from __future__ import annotations
 import json
 import re
 import subprocess

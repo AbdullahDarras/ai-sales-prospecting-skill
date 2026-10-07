@@ -2,6 +2,8 @@
 
 لا صيغ بالملف عمدًا: أرقام الملخص لقطة بتاريخ التصدير، فيظهر الملف كاملًا بأي معاينة (جوال، بريد).
 """
+
+from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 

@@ -1,4 +1,6 @@
 """قرارات الاعتماد على السجلات البانتظار. تستدعيها الواجهة."""
+
+from __future__ import annotations
 from .states import State
 from .store import Store
 

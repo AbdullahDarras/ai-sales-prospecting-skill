@@ -1,4 +1,6 @@
 """بيانات تجريبية لمعاينة الواجهة. كلها خيالية وموسومة demo ولا تُستخدم بأي إرسال."""
+
+from __future__ import annotations
 from .states import State
 from .store import Store
 

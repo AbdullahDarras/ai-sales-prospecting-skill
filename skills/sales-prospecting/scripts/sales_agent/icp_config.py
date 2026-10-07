@@ -1,4 +1,6 @@
 """تحميل إعدادات الشريحة من config/icp/<الكود>.yaml. المستخدم يعدّلها بدون لمس الكود."""
+
+from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 

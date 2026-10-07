@@ -1,5 +1,7 @@
 """التقييم: النموذج يقترح، والكود الحتمي يقرر. الفلاتر الحتمية تتغلب على حكم النموذج،
 والدرجة العالية بلا دليل مخزَّن تُخفَّض، والحالات الحدّية يراجعها مراجِع معاكس."""
+
+from __future__ import annotations
 from dataclasses import dataclass
 
 from ..icp_config import Icp

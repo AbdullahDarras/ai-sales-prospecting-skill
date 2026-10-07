@@ -1,4 +1,6 @@
 """الإثراء: يجمع بيانات الاتصال والأدلة. القاعدة: لا تُحفظ معلومة بدون رابط مصدر http."""
+
+from __future__ import annotations
 import json
 
 from ..countries import COUNTRY_AR

@@ -1,4 +1,6 @@
 """الصياغة: فصحى رسمية، بلا سعر، بملاحظة لها مصدر، ثم فحوصات آلية قبل أن تصل المستخدم."""
+
+from __future__ import annotations
 from ..channels import choose_channel
 from ..icp_config import Icp
 from ..message_checks import check_message

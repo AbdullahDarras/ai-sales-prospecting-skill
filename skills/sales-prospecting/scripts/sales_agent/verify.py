@@ -3,6 +3,8 @@
 أوزان التحقق (من 100): الوجود والنشاط 30، التطابق بين المصادر 30، قنوات الاتصال 20، صاحب القرار 20.
 العتبات (75 و70 و50) مؤقتة حتى تُعايَر بالمجموعة المرجعية.
 """
+
+from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 

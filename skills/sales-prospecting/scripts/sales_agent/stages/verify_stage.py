@@ -1,4 +1,6 @@
 """التحقق: يبني الأدلة من المخزن ويحسب الدرجة بالمنطق الحتمي في verify.py."""
+
+from __future__ import annotations
 import json
 import re
 import socket

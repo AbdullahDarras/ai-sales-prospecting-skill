@@ -2,7 +2,7 @@
 name: sales-prospecting
 description: Find, verify and qualify ideal customers (ICP) from public web sources, then prepare first-contact outreach for human approval. Evidence-based verification layer (every fact carries a source URL and confidence), segment rules in YAML, Arabic formal-MSA messages without prices, an approval UI, and Excel export for a sales team. Use when the user asks to prospect leads, find ideal customers or an ICP, build or validate a lead list, draft cold outreach, or hand leads to sales. Arabic triggers - ابحث عن عملاء، عملاء مثاليين، قائمة مبيعات، تواصل بارد، تحقق من العملاء.
 license: MIT
-compatibility: Needs python3 (pyyaml, openpyxl; fastapi+uvicorn only for the optional approval UI) and an agent with web search/fetch tools.
+compatibility: Needs python3 3.9+ (scripts/bootstrap.py prepares an isolated environment with pyyaml, openpyxl, and fastapi+uvicorn for the optional approval UI) and an agent with web search/fetch tools.
 ---
 
 # Sales prospecting
@@ -14,9 +14,10 @@ message checks, stage order) and stores everything. **You never send messages.**
 ## Setup (once per project)
 
 ```bash
-pip install -r <skill_dir>/scripts/requirements.txt        # pyyaml, openpyxl (+ fastapi, uvicorn for the UI)
 SALES="python3 <skill_dir>/scripts/sales_cli.py --workspace ./sales-workspace"   # <skill_dir> = folder holding this SKILL.md
 $SALES init                                                  # creates ./sales-workspace (db, exports, icp)
+# If it says Python packages are missing, run this ONCE, then repeat the command above (it finds the environment by itself):
+python3 <skill_dir>/scripts/bootstrap.py                     # isolated environment in ~/.sales-prospecting/venv
 $SALES settings set --company "<company>" --sender "<sender name>"   # required: appears in every message signature
 $SALES icp list                                              # bundled example segments + your own in ./sales-workspace/icp
 ```

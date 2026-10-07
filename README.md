@@ -24,7 +24,26 @@
 
 ## التثبيت
 
-### Claude Code (الأسهل، ويشتغل مع تطبيق Claude Desktop وVS Code)
+### من داخل تطبيق Claude Desktop، بدون طرفية (الأسهل)
+
+1. افتح تطبيق **Claude** واذهب إلى تبويب **Code**، وابدأ جلسة جديدة (بأي مجلد).
+2. الصق هذه الجملة وأرسلها:
+
+```
+ثبّت لي مهارة sales-prospecting. نفّذ التعليمات الموجودة في هذا الملف حرفيًا:
+https://raw.githubusercontent.com/AbdullahDarras/ai-sales-prospecting-skill/main/INSTALL.md
+```
+
+3. سيطلب Claude إذنك لتشغيل أوامر (تنزيل المستودع، نسخ المجلد، تجهيز بيئة بايثون). اقرأها ووافق.
+4. عند انتهائه افتح **جلسة جديدة** (الجلسة الحالية لا ترى المهارة)، وقل مثلًا:
+   «ابحث لي عن 5 كافيهات مستقلة في الرياض وجهّز رسائل التواصل».
+
+يعمل على ماك وLinux ويحتاج Python 3.9 أو أحدث (الماك الجديد يعرض تثبيته تلقائيًا) واتصال إنترنت.
+المهارة تُنسخ إلى `~/.claude/skills/` الذي تقرأه جلسات Code المحلية في التطبيق
+([التوثيق](https://code.claude.com/docs/en/desktop#use-skills)).
+> الظهور في زر **+ ← Plugins ← Add plugin** غير متاح حاليًا: ذلك المتصفح يعرض إضافات المنتجات المضافة مسبقًا ومنتج Anthropic فقط.
+
+### بالطرفية (Claude Code، ويشتغل أيضًا مع التطبيق وVS Code)
 
 افتح **الطرفية (Terminal)** على جهازك (وليس خانة المحادثة داخل التطبيق)، وشغّل:
 
@@ -111,6 +130,14 @@ discover → enrich → verify → score → draft → human approval → (sendi
 ```
 
 **Install**
+
+*Inside the Claude Desktop app, no terminal (easiest).* In the **Code** tab start a new session and paste:
+```
+Install the sales-prospecting skill. Follow the instructions in this file literally:
+https://raw.githubusercontent.com/AbdullahDarras/ai-sales-prospecting-skill/main/INSTALL.md
+```
+Approve the commands Claude asks to run, then start a **new session**. It copies the skill to `~/.claude/skills/` (loaded by local
+Code-tab sessions) and prepares an isolated Python environment (macOS/Linux, Python 3.9+, internet needed once).
 
 *Claude Code (also covers the Claude Desktop Code tab and VS Code).* Run these in a regular **terminal** (not in the chat box):
 ```bash

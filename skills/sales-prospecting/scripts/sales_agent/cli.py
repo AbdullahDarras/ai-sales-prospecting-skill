@@ -4,6 +4,8 @@
 الأوامر تحرس القواعد حتميًا: المصادر، الأوزان، الاستبعاد، فحص الرسائل، ترتيب المراحل.
 كل المخرجات JSON على stdout. الأخطاء JSON على stderr مع رمز خروج 1.
 """
+
+from __future__ import annotations
 import argparse
 import json
 import os
@@ -229,8 +231,11 @@ def _dispatch(args, store: Store, ws: Path) -> int:
         out = Path(args.out) if args.out else ws / "exports" / f"leads-{date.today().isoformat()}.xlsx"
         return _emit({"path": str(export_xlsx(store, out))})
     if c == "serve":
-        import uvicorn
-        from .web.app import create_app
+        try:
+            import uvicorn
+            from .web.app import create_app
+        except ImportError as e:
+            raise CliError(f"واجهة الاعتماد تحتاج fastapi وuvicorn ({e.name}). شغّل bootstrap.py لتثبيتها") from None
         uvicorn.run(create_app(store), host=args.host, port=args.port, log_level="info")
         return 0
     if c == "demo-seed":

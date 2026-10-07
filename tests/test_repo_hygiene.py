@@ -72,3 +72,22 @@ def test_agent_entry_files_point_to_the_skill():
 def test_license_and_readme_exist():
     assert (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License")
     assert (ROOT / "README.md").stat().st_size > 1500
+
+
+def test_install_md_is_executable_by_an_agent_and_safe():
+    text = (ROOT / "INSTALL.md").read_text(encoding="utf-8")
+    assert "https://github.com/AbdullahDarras/ai-sales-prospecting-skill/archive/refs/heads/main.zip" in text
+    assert "bootstrap.py" in text and "$HOME/.claude/skills/sales-prospecting" in text
+    assert 'grep -q "^name: sales-prospecting"' in text        # لا يحذف مجلدًا ليس لهذه المهارة
+    assert "git clone" not in text                              # لا يشترط git ولا طرفية
+
+
+def test_readme_leads_with_the_in_app_install_and_links_the_install_file():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "raw.githubusercontent.com/AbdullahDarras/ai-sales-prospecting-skill/main/INSTALL.md" in text
+    assert text.index("بدون طرفية") < text.index("claude plugin marketplace add")
+
+
+def test_skill_md_tells_agents_how_to_prepare_dependencies():
+    skill = (ROOT / "skills" / "sales-prospecting" / "SKILL.md").read_text(encoding="utf-8")
+    assert "bootstrap.py" in skill and "pip install" not in skill

@@ -1,4 +1,6 @@
 """الاكتشاف: يبحث بالويب عن منشآت مطابقة للشريحة. لا يُحفظ مرشح بلا اسم ورابط مصدر حقيقي."""
+
+from __future__ import annotations
 from ..countries import COUNTRY_AR
 from ..icp_config import Icp
 from ..store import Store

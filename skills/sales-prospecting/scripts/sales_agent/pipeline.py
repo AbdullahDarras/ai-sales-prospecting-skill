@@ -1,4 +1,6 @@
 """يمرّر عميلًا واحدًا عبر المراحل المتبقية له بحسب حالته الحالية."""
+
+from __future__ import annotations
 from .claude_runner import ClaudeError, UsageLimitReached
 from .icp_config import Icp
 from .stages.draft import DraftFailed, run_draft

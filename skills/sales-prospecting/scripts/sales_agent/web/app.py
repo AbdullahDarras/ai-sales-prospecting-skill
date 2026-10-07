@@ -1,5 +1,6 @@
 """واجهة الويب المحلية: API + صفحة التطبيق. تُربط على 127.0.0.1 فقط."""
 from pathlib import Path
+from typing import Optional, Union
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -17,7 +18,7 @@ STATIC = Path(__file__).parent / "static"
 
 class ApproveBody(BaseModel):
     message: str = ""
-    channel: str | None = None
+    channel: Optional[str] = None
 
 
 class RejectBody(BaseModel):
@@ -37,7 +38,7 @@ class RunBody(BaseModel):
     code: str = ""
     country: str = ""
     city: str = ""
-    count: int | str = 0
+    count: Union[int, str] = 0
 
 
 def _lead_card(store: Store, lead: dict) -> dict:
@@ -51,7 +52,7 @@ def _lead_card(store: Store, lead: dict) -> dict:
     }
 
 
-def create_app(store: Store, daily_cap: int = 20, runs: RunManager | None = None) -> FastAPI:
+def create_app(store: Store, daily_cap: int = 20, runs: Optional[RunManager] = None) -> FastAPI:
     runs = runs or RunManager(store)
     app = FastAPI(title="نظام المبيعات")
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
@@ -95,8 +96,8 @@ def create_app(store: Store, daily_cap: int = 20, runs: RunManager | None = None
         return _run(lambda: edit_message(store, lead_id, body.message))
 
     @app.get("/api/leads")
-    def leads(state: str | None = None, code: str | None = None,
-              country: str | None = None, q: str | None = None):
+    def leads(state: Optional[str] = None, code: Optional[str] = None,
+              country: Optional[str] = None, q: Optional[str] = None):
         try:
             state_filter = State(state) if state else None
         except ValueError:
